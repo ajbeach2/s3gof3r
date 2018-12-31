@@ -61,7 +61,7 @@ func getRoleCredentials(roleUrl string) (keys Keys, err error) {
 // See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html
 func ECSKeys() (keys Keys, err error) {
 	roleUri := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
-	rolePath := fmt.Sprint("169.254.170.2", roleUri)
+	rolePath := fmt.Sprint("http://169.254.170.2", roleUri)
 
 	return getRoleCredentials(rolePath)
 }
