@@ -27,32 +27,10 @@ type mdCreds struct {
 	Expiration      string
 }
 
-// InstanceKeys Requests the AWS keys from the instance-based metadata on EC2
-// Assumes only one IAM role.
-func InstanceKeys() (keys Keys, err error) {
-
-	rolePath := "http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+// Helper funciton to make a get request to a role path
+func getRoleCredentials(roleUrl string) (keys Keys, err error) {
 	var creds mdCreds
-
-	// request the role name for the instance
-	// assumes there is only one
-	resp, err := ClientWithTimeout(2 * time.Second).Get(rolePath)
-	if err != nil {
-		return
-	}
-	defer checkClose(resp.Body, err)
-	if resp.StatusCode != 200 {
-		err = newRespError(resp)
-		return
-	}
-	role, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return
-	}
-
-	// request the credential metadata for the role
-	resp, err = http.Get(rolePath + string(role))
+	resp, err := http.Get(roleUrl)
 	if err != nil {
 		return
 	}
@@ -76,6 +54,43 @@ func InstanceKeys() (keys Keys, err error) {
 	}
 
 	return
+}
+
+// ECSKeys gets credentials from a diffrent ip for ecs task roles
+// for use inside ECS task containers.
+// See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html
+func ECSKeys() (keys Keys, err error) {
+	roleUri := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
+	rolePath := fmt.Sprint("169.254.170.2", roleUri)
+
+	return getRoleCredentials(rolePath)
+}
+
+// InstanceKeys Requests the AWS keys from the instance-based metadata on EC2
+// Assumes only one IAM role.
+func InstanceKeys() (keys Keys, err error) {
+
+	rolePath := "http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+
+	// request the role name for the instance
+	// assumes there is only one
+	resp, err := ClientWithTimeout(2 * time.Second).Get(rolePath)
+	if err != nil {
+		return
+	}
+	defer checkClose(resp.Body, err)
+	if resp.StatusCode != 200 {
+		err = newRespError(resp)
+		return
+	}
+	role, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return
+	}
+
+	// request the credential metadata for the role
+	return getRoleCredentials(rolePath + string(role))
 }
 
 // EnvKeys Reads the AWS keys from the environment
