@@ -96,6 +96,11 @@ func getAWSKeys() (keys s3gof3r.Keys, err error) {
 	if err == nil {
 		return
 	}
+	keys, err = s3gof3r.ECSKeys()
+	if err == nil {
+		return
+	}
+
 	err = errors.New("no AWS keys found")
 	return
 }
